@@ -1,0 +1,102 @@
+---
+title: "Lab1"
+author: "Connor Quiroz"
+date: "2024-09-27"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Exercise 1
+
+> Downloaded R, completed lab in rmd file.
+
+# Exercise 2
+
+> Named file as Lab1_Quiroz.rmd and created Rproj file to set working directory.
+
+# Excercise 3
+
+```{r e3}
+# LAB1: Intro R Lab in QSCI482
+# September 27 2024 created by Connor Quiroz
+```
+
+# Exercise 4
+
+```{r e4}
+a = 0.00021
+b = 3.1
+L = 30
+W <- signif(a * (L**b),1)
+```
+
+> Answer: 1 significant digit; 8kg
+
+# Exercise 5
+
+```{r e5}
+# Create  and call Antarctic blue whales vector
+bluelengths <- rnorm(100, mean = 84.4, sd = 4.07)
+bluelengths
+
+# Histogram of Antarctic blue whales lengths
+hist(bluelengths)
+
+# Max value of Antarctic blue whales vector
+max(bluelengths)
+
+# Trying 1000, 10000, and 100000 resamples from a normal distribution of Antarctic blue whales
+bluelengths <- rnorm(1000, mean = 84.4, sd = 4.07)
+max(bluelengths)
+bluelengths <- rnorm(10000, mean = 84.4, sd = 4.07)
+max(bluelengths)
+bluelengths <- rnorm(100000, mean = 84.4, sd = 4.07)
+max(bluelengths)
+```
+
+> Answer: maximum values of blue whales vector increases with higher sample sizes
+
+# Exercise 6
+
+### 6.1 Load in data
+```{r e6.1}
+cdata <- read.csv("CommuteTime.csv")
+```
+
+### 6.2 Print data
+
+```{r e6.2}
+print(cdata)
+```
+
+### 6.3 Extract first column
+
+```{r e6.3}
+commutetime <- cdata[1]
+```
+
+### 6.4 Mean and standard deviation
+
+```{r e6.4}
+Mean <- signif(mean(commutetime$TotalCommuteMin),2)
+SD <- signif(sd(commutetime$TotalCommuteMin),2)
+```
+
+> Answer: Mean commute time for Trevor branch to work: `r Mean`min; standard deviation: `r SD`min.
+
+### 6.5
+
+```{r e6.5}
+pnorm(60, mean = Mean, sd = SD)
+```
+> Answer: Probability that Trevor's commute time will NOT exceed 60 minutes and be early for work: 0.999.
+
+### 6.6
+
+```{r e6.6}
+1-pnorm(60, mean = Mean, sd = SD)
+```
+> Answer: Probability that Trevor's commute time WILL exceed 60 minutes and be early for work: 0.0001.
