@@ -1,0 +1,114 @@
+---
+title: "Dirichlet distribution intro"
+author: "Connor Quiroz"
+date: "2025-03-08"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(cowplot)
+library(LaplacesDemon) # For Dirichlet distribution
+library(tidyverse)
+```
+
+# Purpose
+
+For my first chapter, I am analyzing countries' risks embedded in their consumed seafood, and one of the measures for measuring risk, adaptive capacity, is comprised of four components (assets, social organization, learning, and flexibility). This is an intro analysis on Dirichlet distributions to explore what the importance of these components within adaptive capacity are. Here, I focus on the **flexibility** component for this scenario.
+
+The purpose of this code is to understand how the Dirichlet distribution works. Specifically, I have created a fake scenario of 192 countries with different exposures, sensitivities, and adaptive capacities. I used a loop to see how country's risks change with respect to increasing 1) the importance of the flexibility component inside adaptive capacity, and 2) The overall importance of adaptive capacity in risk creation (i.e., at what point in variable importance are the simulated risks significantly different than the null risks)?. 
+
+*Null* risk means that the risk was calculated with *equal* component importance for adaptive capacity (i.e., 25% importance for assets, social organization, learning, and flexibility). For the simulated risks, I modified component importance through two addition variables: "modifier" which is associated with the flexibility component importance and "modifier_2" represents the overall adaptive capacity importance.
+
+## Code
+
+```{r cars}
+set.seed(52)
+
+# Produce simulated exposure and sensitivity samples per country.
+exposure <- runif(192, min = 0, max = 1)
+sensitivity <- runif(192, min = 0, max = 1)
+
+# assets, social organization, learning, flexibility
+adaptive_capacity <-  replicate(4, runif(192))
+adaptive_capacity <- as.vector(t(adaptive_capacity))
+
+
+# Null value - the probabilities are equal
+null_representation <- adaptive_capacity * c(0.25,0.25,0.25,0.25)
+
+# Sum over every four entries for adaptive capacity, getting null representation for ac
+matrix_vec <- matrix(null_representation, nrow = 4)
+null_representation <- colSums(matrix_vec)
+
+null_risk <- (exposure + sensitivity) - 2 * null_representation
+
+# Set initial values for loop
+modifier = 0
+modifier_2 = -0.005
+p_val = 1
+
+while (p_val >= 0.05) {
+  
+  if (modifier == 0 | modifier == 4950) {
+    modifier_2 <- modifier_2 + 0.005
+    modifier <- 0
+  }
+  
+  # Adjust the concentration parameters to bias the Dirichlet towards the first component (assets)
+  concentration <- c(50,50,50,50+modifier)  # Give more weight to the first component (assets)
+
+  # Generate 1000 samples from the Dirichlet distribution with adjusted concentration
+  samples <- rdirichlet(1000, concentration)
+
+  # Take a random sample from the Dirichlet distribution
+  dirichlet_probs <- samples[sample(1:nrow(samples), 1), ]
+
+  # Calculate the risk for the random sample
+  actual_representation <- adaptive_capacity * dirichlet_probs
+  matrix_vec <- matrix(actual_representation, nrow = 4)
+  actual_representation <- colSums(matrix_vec)
+  
+  simulated_risk <- (exposure + sensitivity) - (2 + modifier_2) * actual_representation
+
+  # Compare simulated to null results
+  p_val <- t.test(simulated_risk, null_risk, alternative = "two.sided")$p.value
+  modifier <- modifier + 5
+}
+
+# Calculate proportion of importance for 
+new_prob <- round((50 + modifier) / (50 + modifier + 50 + 50 + 50), 3)
+other_probs_distributions <- round((1 - new_prob) / 3, 3)
+
+
+tibble(simulated = simulated_risk,
+       null = null_risk) %>%
+  rename(Simulated = "simulated", Null = "null") %>%
+  pivot_longer(cols = c("Simulated", "Null")) %>%
+  ggplot(aes(x = value, fill = name)) +
+  geom_histogram(alpha = 0.5, position = "identity", color = "black") +
+  theme_minimal_hgrid() +
+  labs(x = "Risk index", y = "Number of countries", fill = "", title = "Sensitivity Analysis") +
+  theme(plot.title = element_text(hjust = 0.5)) +
+  scale_fill_viridis_d(end = 0.75)
+
+```
+
+## Findings
+
+> Proportion importance of flexibility: `r new_prob`
+
+> Proportion importance of other three adaptive capacity components: `r other_probs_distributions`
+
+> The seed (i.e., the intiial values at which countries' exposures, sensitivies, and adaptive capacities) are set have a substantial of influence on the component importance. I used the same uniform distribution to derive countries' metrics, but the distributions may likely take other distributional forms across exposure, sensitivity, and adaptive capacity components.
+
+## Takeaways
+
+1. Results may very well look different when using real data that take distributions different than uniform.
+
+2. Need to perform this assessment across all four components, as well as the variables within each component to understand component and variable importance
+
+3. Think of other ways to map out sensitivity analysis, as only modifying importance within components of adaptive capacity resulted in no significant p-values - only changing modifier_2 (i.e., importance of the entire component) helped to create a significant p-value.
